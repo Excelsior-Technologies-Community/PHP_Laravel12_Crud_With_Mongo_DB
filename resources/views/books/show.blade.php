@@ -5,6 +5,11 @@
     <h3>Book Details</h3>
     <div>
         <a class="btn btn-primary btn-sm" href="{{ route('books.edit',$book->_id) }}">Edit</a>
+        <a
+            class="btn btn-info btn-sm"
+            href="{{ route('books.borrowing-history', $book->_id) }}">
+            Borrowing History
+        </a>
         <a class="btn btn-secondary btn-sm" href="{{ route('books.index') }}">Back</a>
     </div>
 </div>
@@ -14,11 +19,11 @@
         <div class="row">
             <div class="col-md-4">
                 @if($book->image)
-                    <img src="{{ asset('storage/' . $book->image) }}" class="img-fluid rounded" alt="Book">
+                <img src="{{ asset('storage/' . $book->image) }}" class="img-fluid rounded" alt="Book">
                 @else
-                    <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 300px;">
-                        <span class="text-muted">No Image</span>
-                    </div>
+                <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 300px;">
+                    <span class="text-muted">No Image</span>
+                </div>
                 @endif
             </div>
             <div class="col-md-8">
@@ -32,11 +37,11 @@
                 <p><strong>Author:</strong> {{ $book->user?->name ?? 'N/A' }}</p>
                 <p><strong>Tags:</strong>
                     @if($book->tags->count() > 0)
-                        @foreach($book->tags as $tag)
-                            <span class="badge bg-secondary">{{ $tag->name }}</span>
-                        @endforeach
+                    @foreach($book->tags as $tag)
+                    <span class="badge bg-secondary">{{ $tag->name }}</span>
+                    @endforeach
                     @else
-                        N/A
+                    N/A
                     @endif
                 </p>
                 <hr>

@@ -9,6 +9,7 @@ return [
     | Default Database Connection Name
     |--------------------------------------------------------------------------
     */
+
     'default' => env('DB_CONNECTION', 'mongodb'),
 
     /*
@@ -16,19 +17,26 @@ return [
     | Database Connections
     |--------------------------------------------------------------------------
     */
+
     'connections' => [
 
+        /*
+        |--------------------------------------------------------------------------
+        | MongoDB
+        |--------------------------------------------------------------------------
+        */
+
         'mongodb' => [
-            'driver'   => 'mongodb',
-            'host'     => env('DB_HOST', '127.0.0.1'),
-            'port'     => env('DB_PORT', 27017),
-            'database' => env('DB_DATABASE'),
-            'username' => env('DB_USERNAME'),
-            'password' => env('DB_PASSWORD'),
-            'options'  => [
-                'database' => 'admin',
-            ],
+            'driver' => 'mongodb',
+            'dsn' => env('DB_URI'),
+            'database' => env('DB_DATABASE', 'crud_with_mongodb'),
         ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SQLite
+        |--------------------------------------------------------------------------
+        */
 
         'sqlite' => [
             'driver' => 'sqlite',
@@ -36,6 +44,12 @@ return [
             'prefix' => '',
             'foreign_key_constraints' => true,
         ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | MySQL
+        |--------------------------------------------------------------------------
+        */
 
         'mysql' => [
             'driver' => 'mysql',
@@ -51,6 +65,12 @@ return [
             'engine' => null,
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | PostgreSQL
+        |--------------------------------------------------------------------------
+        */
+
         'pgsql' => [
             'driver' => 'pgsql',
             'host' => env('DB_HOST', '127.0.0.1'),
@@ -63,6 +83,12 @@ return [
             'search_path' => 'public',
             'sslmode' => 'prefer',
         ],
+
+        /*
+        |--------------------------------------------------------------------------
+        | SQL Server
+        |--------------------------------------------------------------------------
+        */
 
         'sqlsrv' => [
             'driver' => 'sqlsrv',
@@ -82,6 +108,7 @@ return [
     | Migration Repository Table
     |--------------------------------------------------------------------------
     */
+
     'migrations' => [
         'table' => 'migrations',
         'update_date_on_publish' => true,
@@ -92,13 +119,17 @@ return [
     | Redis Databases
     |--------------------------------------------------------------------------
     */
+
     'redis' => [
 
         'client' => env('REDIS_CLIENT', 'phpredis'),
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => Str::slug((string) env('APP_NAME', 'laravel'), '_').'_database_',
+            'prefix' => Str::slug(
+                (string) env('APP_NAME', 'laravel'),
+                '_'
+            ) . '_database_',
         ],
 
         'default' => [

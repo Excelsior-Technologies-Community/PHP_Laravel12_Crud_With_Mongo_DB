@@ -11,6 +11,7 @@ class User extends MongoDBUser
     use HasApiTokens, Notifiable;
 
     protected $connection = 'mongodb';
+
     protected $collection = 'users';
 
     protected $fillable = [
@@ -47,5 +48,13 @@ class User extends MongoDBUser
     public function books()
     {
         return $this->hasMany(Book::class, 'user_id');
+    }
+
+    /**
+     * Books borrowed by this user.
+     */
+    public function borrowings()
+    {
+        return $this->hasMany(Borrowing::class, 'user_id');
     }
 }
