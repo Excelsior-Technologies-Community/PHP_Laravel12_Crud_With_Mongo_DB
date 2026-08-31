@@ -14,6 +14,12 @@
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
+@if(session('error'))
+    <div class="alert alert-danger">
+        {{ session('error') }}
+    </div>
+@endif
+
 <div class="card mb-3">
     <div class="card-body">
         <form method="GET" action="{{ route('books.index') }}" class="row g-2">
@@ -91,27 +97,95 @@
         </td>
         <td>{{ $book->category?->name ?? 'N/A' }}</td>
         <td>{{ $book->user?->name ?? 'N/A' }}</td>
-        <td>
-            @if(request('trashed'))
-                <form action="{{ route('books.restore', $book->_id) }}" method="POST" style="display:inline">
+<td>
+    @if(request('trashed'))
+
+        <form
+            action="{{ route('books.restore', $book->_id) }}"
+            method="POST"
+            style="display:inline"
+        >
+            @csrf
+
+            <button class="btn btn-success btn-sm">
+                Restore
+            </button>
+        </form>
+
+        <form
+            action="{{ route('books.force-delete', $book->_id) }}"
+            method="POST"
+            style="display:inline"
+        >
+            @csrf
+            @method('DELETE')
+
+            <button
+                class="btn btn-danger btn-sm"
+                onclick="return confirm('Permanently delete?')"
+            >
+                Force Delete
+            </button>
+        </form>
+
+    @else
+
+        <a
+            class="btn btn-info btn-sm"
+            href="{{ route('books.show', $book->_id) }}"
+        >
+            Show
+        </a>
+
+        <a
+            class="btn btn-primary btn-sm"
+            href="{{ route('books.edit', $book->_id) }}"
+        >
+            Edit
+        </a>
+
+        @auth
+            @if($book->status === 'available')
+
+                <form
+                    action="{{ route('books.borrow', $book->_id) }}"
+                    method="POST"
+                    style="display:inline"
+                >
                     @csrf
-                    <button class="btn btn-success btn-sm">Restore</button>
+
+                    <button class="btn btn-success btn-sm">
+                        Borrow
+                    </button>
                 </form>
-                <form action="{{ route('books.force-delete', $book->_id) }}" method="POST" style="display:inline">
-                    @csrf
-                    @method('DELETE')
-                    <button class="btn btn-danger btn-sm" onclick="return confirm('Permanently delete?')">Force Delete</button>
-                </form>
-            @else
-                <a class="btn btn-info btn-sm" href="{{ route('books.show',$book->_id) }}">Show</a>
-                <a class="btn btn-primary btn-sm" href="{{ route('books.edit',$book->_id) }}">Edit</a>
-                <form action="{{ route('books.destroy',$book->_id) }}" method="POST" style="display:inline">
-                    @csrf
-                    @method('DELETE')
-                    <button class="btn btn-danger btn-sm" onclick="return confirm('Delete?')">Delete</button>
-                </form>
+
+            @elseif($book->status === 'borrowed')
+
+                <span class="badge bg-warning text-dark">
+                    Borrowed
+                </span>
+
             @endif
-        </td>
+        @endauth
+
+        <form
+            action="{{ route('books.destroy', $book->_id) }}"
+            method="POST"
+            style="display:inline"
+        >
+            @csrf
+            @method('DELETE')
+
+            <button
+                class="btn btn-danger btn-sm"
+                onclick="return confirm('Delete?')"
+            >
+                Delete
+            </button>
+        </form>
+
+    @endif
+</td>
     </tr>
     @empty
     <tr>

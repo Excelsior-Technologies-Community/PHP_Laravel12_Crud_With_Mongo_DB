@@ -19,6 +19,40 @@
                 <li class="nav-item"><a class="nav-link" href="{{ route('categories.index') }}">Categories</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('tags.index') }}">Tags</a></li>
                 @auth
+
+    <li class="nav-item">
+        <a
+            class="nav-link"
+            href="{{ route('borrowings.index') }}"
+        >
+            My Borrowings
+        </a>
+    </li>
+
+    @if(auth()->user()->isAdmin())
+
+        <li class="nav-item">
+            <a
+                class="nav-link"
+                href="{{ route('admin.borrowings.index') }}"
+            >
+                Borrowings
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a
+                class="nav-link"
+                href="{{ route('admin.analytics') }}"
+            >
+                Analytics
+            </a>
+        </li>
+
+    @endif
+
+@endauth
+                @auth
                     @if(auth()->user()->isAdmin())
                         <li class="nav-item"><a class="nav-link" href="{{ route('admin.dashboard') }}">Admin</a></li>
                     @endif

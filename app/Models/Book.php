@@ -10,6 +10,7 @@ class Book extends Model
     use SoftDeletes;
 
     protected $connection = 'mongodb';
+
     protected $collection = 'books';
 
     protected $fillable = [
@@ -51,5 +52,22 @@ class Book extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * All borrowing records for this book.
+     */
+    public function borrowings()
+    {
+        return $this->hasMany(Borrowing::class, 'book_id');
+    }
+
+    /**
+     * Current active borrowing.
+     */
+    public function activeBorrowing()
+    {
+        return $this->hasOne(Borrowing::class, 'book_id')
+            ->where('status', 'borrowed');
     }
 }
