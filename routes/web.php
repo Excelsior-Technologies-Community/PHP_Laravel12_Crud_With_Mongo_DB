@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
@@ -41,6 +42,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
 });
 
+
 Route::post('/logout', [AuthController::class, 'logout'])
     ->name('logout')
     ->middleware('auth');
@@ -54,11 +56,39 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 Route::resource('books', BookController::class);
 
+
+/*
+|--------------------------------------------------------------------------
+| Bulk Book Actions
+|--------------------------------------------------------------------------
+*/
+
+/*
+ * Bulk soft delete
+ *
+ * Used by:
+ * resources/views/books/index.blade.php
+ *
+ * route('books.bulk-delete')
+ */
+Route::post(
+    'books/bulk-delete',
+    [BookController::class, 'bulkDelete']
+)->name('books.bulk-delete');
+
+
+/*
+ * Restore single deleted book
+ */
 Route::post(
     'books/{id}/restore',
     [BookController::class, 'restore']
 )->name('books.restore');
 
+
+/*
+ * Permanently delete single deleted book
+ */
 Route::delete(
     'books/{id}/force-delete',
     [BookController::class, 'forceDelete']
@@ -96,6 +126,7 @@ Route::get(
     [ExportController::class, 'exportCsv']
 )->name('books.export.csv');
 
+
 Route::get(
     'books/export/pdf',
     [ExportController::class, 'exportPdf']
@@ -111,9 +142,9 @@ Route::get(
 Route::middleware('auth')->group(function () {
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Borrow Book
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     Route::post(
@@ -123,9 +154,9 @@ Route::middleware('auth')->group(function () {
 
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | My Borrowings
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     Route::get(
@@ -135,9 +166,9 @@ Route::middleware('auth')->group(function () {
 
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Return Book
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     Route::post(
@@ -147,9 +178,9 @@ Route::middleware('auth')->group(function () {
 
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Book Borrowing History
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     Route::get(
@@ -159,9 +190,9 @@ Route::middleware('auth')->group(function () {
 
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | Admin Borrowings
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     Route::get(
@@ -171,9 +202,9 @@ Route::middleware('auth')->group(function () {
 
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | MongoDB Analytics
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
 
     Route::get(
@@ -195,18 +226,39 @@ Route::prefix('admin')
     ->middleware('auth')
     ->group(function () {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Dashboard
+        |--------------------------------------------------------------------------
+        */
+
         Route::get(
             '/dashboard',
             [AdminController::class, 'dashboard']
         )->name('dashboard');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Books
+        |--------------------------------------------------------------------------
+        */
 
         Route::get(
             '/books',
             [AdminController::class, 'books']
         )->name('books.index');
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Users
+        |--------------------------------------------------------------------------
+        */
+
         Route::get(
             '/users',
             [AdminController::class, 'users']
         )->name('users.index');
+
     });

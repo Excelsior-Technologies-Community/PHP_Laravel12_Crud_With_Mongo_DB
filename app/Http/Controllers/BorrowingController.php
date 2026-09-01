@@ -10,40 +10,71 @@ use Illuminate\Support\Facades\Auth;
 class BorrowingController extends Controller
 {
     /**
-     * Show current user's borrowing history.
+     * Maximum books a user can borrow.
+     */
+    private const MAX_ACTIVE_BORROWINGS = 3;
+
+    /**
+     * Number of days allowed for borrowing.
+     */
+    private const BORROWING_DAYS = 14;
+
+    /**
+     * =========================================================
+     * MY BORROWING HISTORY
+     * =========================================================
      */
     public function index()
     {
-        $borrowings = Borrowing::with(['book', 'user'])
-            ->where('user_id', Auth::id())
-            ->latest('borrowed_at')
-            ->paginate(10);
+        $borrowings = Borrowing::with([
+                'book',
+                'user'
+            ])
+            ->where(
+                'user_id',
+                Auth::id()
+            )
+            ->oldest('borrowed_at')
+            ->paginate(5);
 
-        return view('borrowings.index', compact('borrowings'));
+        return view(
+            'borrowings.index',
+            compact('borrowings')
+        );
     }
 
     /**
-     * Show all borrowing records.
-     *
-     * Useful for administrators.
+     * =========================================================
+     * ALL BORROWINGS
+     * =========================================================
      */
     public function all()
     {
-        $borrowings = Borrowing::with(['book', 'user'])
-            ->latest('borrowed_at')
-            ->paginate(20);
+        $borrowings = Borrowing::with([
+                'book',
+                'user'
+            ])
+            ->oldest('borrowed_at')
+            ->paginate(5);
 
-        return view('borrowings.all', compact('borrowings'));
+        return view(
+            'borrowings.all',
+            compact('borrowings')
+        );
     }
 
     /**
-     * Borrow a book.
+     * =========================================================
+     * BORROW BOOK
+     * =========================================================
      */
     public function borrow(Book $book)
     {
         /*
-         * Prevent users from borrowing a soft-deleted book.
-         */
+        |--------------------------------------------------------------------------
+        | Prevent deleted book
+        |--------------------------------------------------------------------------
+        */
         if ($book->trashed()) {
             return back()->with(
                 'error',
@@ -52,8 +83,10 @@ class BorrowingController extends Controller
         }
 
         /*
-         * Only available books can be borrowed.
-         */
+        |--------------------------------------------------------------------------
+        | Book must be available
+        |--------------------------------------------------------------------------
+        */
         if ($book->status !== 'available') {
             return back()->with(
                 'error',
@@ -62,11 +95,46 @@ class BorrowingController extends Controller
         }
 
         /*
-         * Prevent the same book from having
-         * multiple active borrowing records.
-         */
-        $existingBorrowing = Borrowing::where('book_id', $book->_id)
-            ->where('status', 'borrowed')
+        |--------------------------------------------------------------------------
+        | NEW FEATURE:
+        | Maximum 3 active borrowings
+        |--------------------------------------------------------------------------
+        */
+        $activeBorrowings = Borrowing::where(
+                'user_id',
+                Auth::id()
+            )
+            ->where(
+                'status',
+                'borrowed'
+            )
+            ->count();
+
+        if (
+            $activeBorrowings >=
+            self::MAX_ACTIVE_BORROWINGS
+        ) {
+            return back()->with(
+                'error',
+                'You can borrow a maximum of ' .
+                self::MAX_ACTIVE_BORROWINGS .
+                ' books at a time.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prevent duplicate active borrowing
+        |--------------------------------------------------------------------------
+        */
+        $existingBorrowing = Borrowing::where(
+                'book_id',
+                $book->_id
+            )
+            ->where(
+                'status',
+                'borrowed'
+            )
             ->first();
 
         if ($existingBorrowing) {
@@ -77,36 +145,50 @@ class BorrowingController extends Controller
         }
 
         /*
-         * Create borrowing record.
-         */
+        |--------------------------------------------------------------------------
+        | Create borrowing
+        |--------------------------------------------------------------------------
+        */
         Borrowing::create([
             'book_id' => $book->_id,
+
             'user_id' => Auth::id(),
+
             'borrowed_at' => now(),
+
+            'due_at' => now()->addDays(
+                self::BORROWING_DAYS
+            ),
+
             'status' => 'borrowed',
         ]);
 
         /*
-         * Update book status.
-         */
+        |--------------------------------------------------------------------------
+        | Update book status
+        |--------------------------------------------------------------------------
+        */
         $book->update([
             'status' => 'borrowed',
         ]);
 
         return back()->with(
             'success',
-            'Book borrowed successfully.'
+            'Book borrowed successfully. Due date: ' .
+            now()
+                ->addDays(self::BORROWING_DAYS)
+                ->format('Y-m-d')
         );
     }
 
     /**
-     * Return a borrowed book.
+     * =========================================================
+     * RETURN BOOK
+     * =========================================================
      */
-    public function returnBook(Borrowing $borrowing)
-    {
-        /*
-         * Prevent returning an already returned book.
-         */
+    public function returnBook(
+        Borrowing $borrowing
+    ) {
         if ($borrowing->status !== 'borrowed') {
             return back()->with(
                 'error',
@@ -115,36 +197,53 @@ class BorrowingController extends Controller
         }
 
         /*
-         * Only the borrower or an administrator
-         * can return the book.
-         */
+        |--------------------------------------------------------------------------
+        | Only borrower or admin
+        |--------------------------------------------------------------------------
+        */
         if (
             !Auth::user()->isAdmin() &&
-            (string) $borrowing->user_id !== (string) Auth::id()
+            (string) $borrowing->user_id !==
+            (string) Auth::id()
         ) {
             abort(403);
         }
 
         /*
-         * Update borrowing record.
-         */
+        |--------------------------------------------------------------------------
+        | Return borrowing
+        |--------------------------------------------------------------------------
+        */
         $borrowing->update([
             'status' => 'returned',
+
             'returned_at' => now(),
         ]);
 
         /*
-         * Find the related book.
-         *
-         * withTrashed() is important here because the book
-         * may have been soft-deleted while it was borrowed.
-         */
-        $book = Book::withTrashed()->find($borrowing->book_id);
+        |--------------------------------------------------------------------------
+        | Restore book availability
+        |--------------------------------------------------------------------------
+        */
+        $book = Book::withTrashed()
+            ->find($borrowing->book_id);
 
         if ($book) {
             $book->update([
                 'status' => 'available',
             ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Show overdue message
+        |--------------------------------------------------------------------------
+        */
+        if ($borrowing->isOverdue()) {
+            return back()->with(
+                'success',
+                'Book returned successfully. This book was returned late.'
+            );
         }
 
         return back()->with(
@@ -154,18 +253,26 @@ class BorrowingController extends Controller
     }
 
     /**
-     * Show borrowing history for a particular book.
+     * =========================================================
+     * BOOK BORROWING HISTORY
+     * =========================================================
      */
     public function bookHistory(Book $book)
     {
         $borrowings = Borrowing::with('user')
-            ->where('book_id', $book->_id)
+            ->where(
+                'book_id',
+                $book->_id
+            )
             ->latest('borrowed_at')
             ->paginate(15);
 
         return view(
             'borrowings.book-history',
-            compact('book', 'borrowings')
+            compact(
+                'book',
+                'borrowings'
+            )
         );
     }
 }
