@@ -1,59 +1,309 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PHP_Laravel12_Crud_With_Mongo_DB
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# Step 1 : Install Laravel 12 and Create Project
+```php
+composer create-project laravel/laravel PHP_Laravel12_Crud_With_Mongo_DB
+```
+# Step 2: Open  Folder 
+```php
+cd PHP_Laravel12_Crud_With_Mongo_DB folder
+```
+# Step 3 : Install MangoDb Laravel Package
+```php
+composer require mongodb/laravel-mongodb
+```
+# Step 4 : Set up For.env file database
+# ===============================
+# DATABASE (MongoDB)
+# ===============================
+```php
+DB_CONNECTION=mongodb
+DB_HOST=127.0.0.1
+DB_PORT=27017
+DB_DATABASE=hddatabase
+DB_USERNAME=
+DB_PASSWORD=
+```
+# Step 5 : config/database.php Add MongoDB Connection
+```php
+ 'mongodb' => [
+            'driver'   => 'mongodb',
+            'host'     => env('DB_HOST', '127.0.0.1'),
+            'port'     => env('DB_PORT', 27017),
+            'database' => env('DB_DATABASE'),
+            'username' => env('DB_USERNAME'),
+            'password' => env('DB_PASSWORD'),
+            'options'  => [
+                'database' => 'admin',
+            ],
+```
+# Step 6 : Create Book Model (MongoDB)
+```php
+php artisan make:model Book
+```
+```php
+<?php
 
-## About Laravel
+namespace App\Models;
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+use MongoDB\Laravel\Eloquent\Model;
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+class Book extends Model
+{
+    protected $connection = 'mongodb';
+    protected $collection = 'books';
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+    protected $fillable = [
+        'name',
+        'detail',
+    ];
+}
+```
+# Step 7 : Create Route for web.php file
+```php
+<?php
 
-## Learning Laravel
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BookController;
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Route::get('/', function () {
+    return redirect('/books');
+});
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Route::resource('books', BookController::class);
+```
+# Step 8 : Create Book Controller
+```php
+php artisan make:controller BookController
+```
+```php
+<?php
 
-## Laravel Sponsors
+namespace App\Http\Controllers;
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+use App\Models\Book;
+use Illuminate\Http\Request;
 
-### Premium Partners
+class BookController extends Controller
+{
+    // LIST
+    public function index()
+    {
+        $books = Book::latest()->get();
+        return view('books.index', compact('books'));
+    }
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+    // CREATE FORM
+    public function create()
+    {
+        return view('books.create');
+    }
 
-## Contributing
+    // STORE
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name'   => 'required',
+            'detail' => 'required',
+        ]);
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+        Book::create($request->all());
 
-## Code of Conduct
+        return redirect()->route('books.index')
+            ->with('success', 'Book created successfully');
+    }
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+    // SHOW
+    public function show(Book $book)
+    {
+        return view('books.show', compact('book'));
+    }
 
-## Security Vulnerabilities
+    // EDIT FORM
+    public function edit(Book $book)
+    {
+        return view('books.edit', compact('book'));
+    }
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+    // UPDATE
+    public function update(Request $request, Book $book)
+    {
+        $request->validate([
+            'name'   => 'required',
+            'detail' => 'required',
+        ]);
 
-## License
+        $book->update($request->all());
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+        return redirect()->route('books.index')
+            ->with('success', 'Book updated successfully');
+    }
+
+    // DELETE
+    public function destroy(Book $book)
+    {
+        $book->delete();
+
+        return redirect()->route('books.index')
+            ->with('success', 'Book deleted successfully');
+    }
+}
+```
+# Step 9 : Now Also Create All blade file and layout file in resource/view/books folder
+# resource/view/books /layout.blade.php
+```php
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Laravel 12 MongoDB CRUD</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-4">
+    @yield('content')
+</div>
+
+</body>
+</html>
+
+```
+# resource/view/books /layout index.blade.php
+```php
+@extends('books.layout')
+
+@section('content')
+
+<div class="d-flex justify-content-between mb-3">
+    <h3>Books List</h3>
+    <a class="btn btn-success" href="{{ route('books.create') }}">Add New Book</a>
+</div>
+
+@if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+@endif
+
+<table class="table table-bordered">
+    <tr>
+        <th>No</th>
+        <th>Name</th>
+        <th>Detail</th>
+        <th width="250">Action</th>
+    </tr>
+
+    @foreach($books as $book)
+    <tr>
+        <td>{{ $loop->iteration }}</td>
+        <td>{{ $book->name }}</td>
+        <td>{{ $book->detail }}</td>
+        <td>
+            <a class="btn btn-info btn-sm" href="{{ route('books.show',$book->_id) }}">Show</a>
+            <a class="btn btn-primary btn-sm" href="{{ route('books.edit',$book->_id) }}">Edit</a>
+
+            <form action="{{ route('books.destroy',$book->_id) }}"
+                  method="POST" style="display:inline">
+                @csrf
+                @method('DELETE')
+                <button class="btn btn-danger btn-sm"
+                        onclick="return confirm('Delete?')">
+                    Delete
+                </button>
+            </form>
+        </td>
+    </tr>
+    @endforeach
+</table>
+
+@endsection
+```
+# resource/view/books /layout create.blade.php
+```php
+@extends('books.layout')
+
+@section('content')
+
+<h3>Add New Book</h3>
+
+@if ($errors->any())
+<div class="alert alert-danger">
+    <ul>
+        @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
+<form method="POST" action="{{ route('books.store') }}">
+    @csrf
+
+    <div class="mb-2">
+        <label>Name</label>
+        <input type="text" name="name" class="form-control">
+    </div>
+
+    <div class="mb-2">
+        <label>Detail</label>
+        <textarea name="detail" class="form-control"></textarea>
+    </div>
+
+    <button class="btn btn-primary">Save</button>
+    <a href="{{ route('books.index') }}" class="btn btn-secondary">Back</a>
+</form>
+
+@endsection
+```
+# resource/view/books /layout edit.blade.php
+```php
+@extends('books.layout')
+
+@section('content')
+
+<h3>Edit Book</h3>
+
+@if ($errors->any())
+<div class="alert alert-danger">
+    <ul>
+        @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
+<form method="POST" action="{{ route('books.update',$book->_id) }}">
+    @csrf
+    @method('PUT')
+
+    <div class="mb-2">
+        <label>Name</label>
+        <input type="text" name="name"
+               value="{{ $book->name }}"
+               class="form-control">
+    </div>
+
+    <div class="mb-2">
+        <label>Detail</label>
+        <textarea name="detail"
+                  class="form-control">{{ $book->detail }}</textarea>
+    </div>
+
+    <button class="btn btn-primary">Update</button>
+    <a href="{{ route('books.index') }}" class="btn btn-secondary">Back</a>
+</form>
+
+@endsection
+```
+# Step 10 : Now run this server and paste this url
+```php
+php artisan serve 
+http://127.0.0.1:8000/books
+```
+
+<img width="1621" height="441" alt="image" src="https://github.com/user-attachments/assets/707bde6b-f4b0-4022-a7a5-33b2d7c014a5" />
+<img width="1394" height="936" alt="image" src="https://github.com/user-attachments/assets/108bd16e-7b7f-4279-95dd-3eddf38a9db8" />
+
+
+ 
+
+ 
